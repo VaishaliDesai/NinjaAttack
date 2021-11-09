@@ -57,6 +57,10 @@ class GameScene: SKScene {
         SKAction.wait(forDuration: 1.0)
       ])
     ))
+    
+    let backgroundMusic = SKAudioNode(fileNamed: "background-music-aac.caf")
+    backgroundMusic.autoplayLooped = true
+    addChild(backgroundMusic)
   }
   
   func random() -> CGFloat {
@@ -122,10 +126,19 @@ class GameScene: SKScene {
   override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
     guard let touch = touches.first else { return }
     
+    run(SKAction.playSoundFileNamed("pew-pew-lei.caf", waitForCompletion: false))
+    
     let touchLocation = touch.location(in: self)
     
     let projectile = SKSpriteNode(imageNamed: "projectile")
     projectile.position = player.position
+    
+    projectile.physicsBody = SKPhysicsBody(circleOfRadius: projectile.size.width/2)
+    projectile.physicsBody?.isDynamic = true
+    projectile.physicsBody?.categoryBitMask = PhysicsCategory.projectile
+    projectile.physicsBody?.contactTestBitMask = PhysicsCategory.monster
+    projectile.physicsBody?.collisionBitMask = PhysicsCategory.none
+    projectile.physicsBody?.usesPreciseCollisionDetection = true
     
     let offset = touchLocation - projectile.position
     
@@ -142,10 +155,33 @@ class GameScene: SKScene {
     let actionMoveDone = SKAction.removeFromParent()
     projectile.run(SKAction.sequence([actionMove, actionMoveDone]))
   }
+  
+  func projectileDidCollideWithMonster(projectile: SKSpriteNode, monster: SKSpriteNode) {
+    projectile.removeFromParent()
+    monster.removeFromParent()
+  }
 }
 
 extension GameScene: SKPhysicsContactDelegate {
-  
+  func didBegin(_ contact: SKPhysicsContact) {
+    var firstBody: SKPhysicsBody
+    var secondBody: SKPhysicsBody
+    
+    if contact.bodyA.categoryBitMask < contact.bodyB.categoryBitMask {
+      firstBody = contact.bodyA
+      secondBody = contact.bodyB
+    } else {
+      firstBody = contact.bodyB
+      secondBody = contact.bodyA
+    }
+    
+    if((firstBody.categoryBitMask & PhysicsCategory.monster != 0) && secondBody.categoryBitMask & PhysicsCategory.projectile != 0) {
+      if let monster = firstBody.node as? SKSpriteNode,
+         let projectile = secondBody.node as? SKSpriteNode {
+        projectileDidCollideWithMonster(projectile: projectile, monster: monster)
+      }
+    }
+  }
 }
 
 public enum Color: String, CaseIterable {
