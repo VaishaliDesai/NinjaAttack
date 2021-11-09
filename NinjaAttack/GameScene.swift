@@ -42,6 +42,7 @@ struct PhysicsCategory {
 class GameScene: SKScene {
   //1
   let player = SKSpriteNode(imageNamed: "ninja")
+  var destroyedMonsters = 0
   
   override func didMove(to view: SKView) {
     backgroundColor = .white
@@ -95,7 +96,16 @@ class GameScene: SKScene {
     let actionMove = SKAction.move(to: CGPoint(x: -monster.size.width/2, y: CGFloat.random(in: 0...size.height)),
                                      duration: TimeInterval(actualDuration))
       let actionMoveDone = SKAction.removeFromParent()
-      monster.run(SKAction.sequence([actionMove, actionMoveDone]))
+      
+    monster.run(SKAction.sequence([actionMove, actionMoveDone]))
+    
+//    let loseAction = SKAction.run { [weak self] in
+//      guard let self = self else { return }
+//      let reveal = SKTransition.flipHorizontal(withDuration: 0.5)
+//      let gameOverScene = GameOverScene(size: self.size, won: false)
+//      self.view?.presentScene(gameOverScene, transition: reveal)
+//    }
+//    monster.run(SKAction.sequence([actionMove, loseAction, actionMoveDone]))
    }
   
   func flyBalloon() {
@@ -159,6 +169,11 @@ class GameScene: SKScene {
   func projectileDidCollideWithMonster(projectile: SKSpriteNode, monster: SKSpriteNode) {
     projectile.removeFromParent()
     monster.removeFromParent()
+    destroyedMonsters += 1
+    
+    if destroyedMonsters > 3 {
+      view?.presentScene(GameOverScene(size: self.size, won: true), transition: SKTransition.flipHorizontal(withDuration: 0.5))
+    }
   }
 }
 
